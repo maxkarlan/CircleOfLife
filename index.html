@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streams Flowing Downward with p5.js</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script>
+        let streams = [];
+        const numOfStreams = 1000;
+        let circleRadius;
+        let randomMovement = true;
+      let obstacles = [];
+      let pressCount = 0;
+const numOfObstacles = 30;  // Or any other number you like
+let rayOffsets = []; // Array to hold phase offsets for each ray
+let numRays = 20; // Number of rays
+let circles = []; // Array to store growing circles
+let maxCircles = 20; // Maximum number of circles
+let circleInterval = 30; // Interval to add a new circle
+let lastCircleTime = 0; // Timer to control circle creation
+
+
+        function setup() {
+            let size = min(windowWidth, windowHeight);
+            let canvas = createCanvas(.9 * size, .9 * size);
+            centerCanvas(canvas);
+
+            // Initialize a random phase offset for each ray
+            for (let i = 0; i < numRays; i++) {
+                rayOffsets.push(random(TWO_PI)); // Random phase offset for asynchronous oscillation
+            }
+
+            background(255);
+            circleRadius = width / 6;
+            for (let i = 0; i < numOfStreams; i++) {
+                let col = color(random(100,255), (0), random(0,155), random(0, 100)); // Start with a blue shade
+                streams.push(new Stream(col));
+            }
+            for (let i = 0; i < numOfObstacles; i++) {
+                obstacles.push(new Obstacle());
+            }
+
+            // Set up automatic direction change every 2 seconds
+            setInterval(() => {
+                randomMovement = !randomMovement;
+                for (let s of streams) {
+                    s.changeMovement(randomMovement);
+                }
+            }, 3500); // 2000 ms = 2 seconds
+        }
+
+        function centerCanvas(canvas) {
+            let x = (windowWidth - width) / 2;
+            let y = (windowHeight - height) / 2;
+            canvas.position(x, y);
+        }
+
+        function windowResized() {
+            let size = min(windowWidth, windowHeight);
+            resizeCanvas(size, size);
+            centerCanvas(canvas);
+        }
+
+        function draw() {
+            background(255);
+
+            // Draw the circle in the center of the window
+            fill(255);
+            noStroke();
+            ellipse(width / 2, height / 2, 2 * circleRadius);
+
+            for (let s of streams) {
+                s.update();
+                s.display();
+            }
+
+            // // Calculate oscillating ray width based on time
+            // let rayWidth = map(sin(millis() * 0.002), -1, 1, circleRadius, width); // Adjust frequency and range
+
+            // Calculate oscillating red value based on time
+            let greenValue = map(sin(millis() * 0.002), -1, 1, 0, 255); // Adjust frequency and range
+
+            // Semi-transparent filled rays
+            blendMode(ADD);
+            let maxRayLength = width; // Length of each ray
+            for (let i = 0; i < numRays; i += 2) { // Increment by 2 to skip every other ray
+                // // Calculate oscillating width for each ray with its phase offset
+                // let rayWidth = map(sin(millis() * 0.002 + rayOffsets[i]), -1, 1, maxRayLength / 4, maxRayLength);
+
+                let angle1 = map(i, 0, numRays, 0, TWO_PI);
+                let angle2 = map(i + 1, 0, numRays, 0, TWO_PI);
+
+                let x1 = width / 2 + cos(angle1) * maxRayLength;
+                let y1 = height / 2 + sin(angle1) * maxRayLength;
+                let x2 = width / 2 + cos(angle2) * maxRayLength;
+                let y2 = height / 2 + sin(angle2) * maxRayLength;
+
+                fill(242, greenValue, 34, 100); // Adjust transparency
+                noStroke();
+                beginShape();
+                vertex(width / 2, height / 2);
+                vertex(x1, y1);
+                vertex(x2, y2);
+                endShape(CLOSE);
+            }
+
+            // // Add a new circle at intervals
+            // if (millis() - lastCircleTime > circleInterval) {
+            //     circles.push({
+            //         x: width / 2,
+            //         y: height / 2,
+            //         radius: 0,
+            //         opacity: 100 // Starting opacity for transparency
+            //     });
+            //     lastCircleTime = millis();
+            // }
+
+            // // Draw and grow each circle
+            // for (let i = circles.length - 1; i >= 0; i--) {
+            //     let circle = circles[i];
+
+            //     // Set fill to partially transparent
+            //     fill(0, 0, 255, circle.opacity);
+            //     stroke(0, 0, 255, circle.opacity); // Blue color with transparency
+            //     strokeWeight(2);
+            //     ellipse(circle.x, circle.y, circle.radius * 2);
+
+            //     // Increase radius and decrease opacity for fade-out effect
+            //     circle.radius += 2;
+            //     circle.opacity -= 1;
+
+            //     // Remove circle if it’s fully faded
+            //     if (circle.opacity <= 0) {
+            //         circles.splice(i, 1);
+            //     }
+            // }
+            // Reset blend mode to normal after drawing rays
+            blendMode(NORMAL);
+        }
+
+// function mousePressed() {
+//     pressCount++;
+
+//     if (pressCount % 2 === 0) {
+//         // Every other time starting from the second time
+//         obstacles = [];  // Clear existing obstacles
+//         for (let i = 0; i < numOfObstacles; i++) {
+//             obstacles.push(new Obstacle());
+//         }
+//     }
+
+//     randomMovement = !randomMovement;
+//     for (let s of streams) {
+//         s.changeMovement(randomMovement);
+//     }
+  
+//   return false; // This prevents any default behavior
+// }
+
+
+
+ class Obstacle {
+    constructor() {
+        this.position = createVector(random(width), random(height));
+        this.radius = random(60, 240);
+        while (this.overlapsWithMainCircle()) {
+            this.position = createVector(random(width), random(height));
+        }
+    }
+
+    overlapsWithMainCircle() {
+        let distanceToCenter = dist(this.position.x, this.position.y, width / 2, height / 2);
+        return distanceToCenter < circleRadius + this.radius;  // Added "+ this.radius" to consider the entire obstacle
+    }
+
+    display() {
+        fill(150);
+        noStroke();
+        ellipse(this.position.x, this.position.y, this.radius * 2);
+    }
+}
+      
+        class Stream {
+            constructor(color) {
+                this.color = color;
+                this.points = [];
+                this.noiseOffset = random(1000);
+                this.currentAngle = random(TWO_PI);
+                this.strokeWidth = width / 200; // Adjust the divisor to control the proportion
+                this.initStream();
+                this.randomMovement = true;
+            }
+
+initStream() {
+    let startX, startY;
+    do {
+        startX = random(width);
+        startY = random(height);
+    } while (!this.isInsideCircle(createVector(startX, startY))); // changed this condition
+
+    this.points.push(createVector(startX, startY));
+}
+
+            update() {
+                let lastPoint = this.points[this.points.length - 1];
+
+    if (this.insideCircle) {
+        // Random movement inside the circle
+        let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
+        this.currentAngle += angleVariation;
+    } else if (this.randomMovement) {
+        // Scatter movement
+        let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
+        this.currentAngle += angleVariation;
+    } else {
+        // Magnetized movement towards the circle
+        this.currentAngle = this.angleToCircleBorder(lastPoint);
+    }
+              
+
+    let len = 5;
+    let newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
+
+              
+              
+    if (this.isInsideCircle(newPoint) && !this.insideCircle && this.randomMovement) {
+        // If the stream is about to enter the circle and is not allowed to, bounce it away
+        let angleToCenter = this.angleToCircleBorder(newPoint);
+        this.currentAngle = 2 * angleToCenter - PI - this.currentAngle;
+        newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
+    }
+
+    if (this.isInsideCircle(newPoint)) {
+        this.insideCircle = true;
+    } else {
+        this.insideCircle = false;
+    }
+              for (let obstacle of obstacles) {
+    let distance = dist(lastPoint.x, lastPoint.y, obstacle.position.x, obstacle.position.y);
+    if (distance < obstacle.radius) {
+        // Repulsion effect
+let angleToObstacle = atan2(obstacle.position.y - lastPoint.y, obstacle.position.x - lastPoint.x);
+let deviationAngle = this.currentAngle - angleToObstacle;
+
+if (abs(deviationAngle) < PI / 2) {
+    this.currentAngle += map(distance, 0, obstacle.radius, -PI / 4, PI / 4);
+} else {
+    this.currentAngle -= map(distance, 0, obstacle.radius, -PI / 4, PI / 4);
+}
+
+    }
+}
+      
+                // Bounce off the canvas boundaries
+                if (newPoint.x <= 0 || newPoint.x >= width) {
+                    this.currentAngle = PI - this.currentAngle;
+                }
+                if (newPoint.y <= 0 || newPoint.y >= height) {
+                    this.currentAngle = TWO_PI - this.currentAngle;
+                }
+              
+                newPoint = p5.Vector.fromAngle(this.currentAngle).mult(len).add(lastPoint);
+
+                this.points.push(newPoint);
+                this.noiseOffset += 0.05;
+
+                if (this.points.length > 100) {
+                    this.points.shift();
+                }
+            }
+          
+            angleToCircleBorder(point) {
+                return atan2(height / 2 - point.y, width / 2 - point.x);
+            }
+          
+            changeMovement(randomMovement) {
+                this.randomMovement = randomMovement;
+                if (randomMovement) {
+                    this.insideCircle = false; // Ensure stream is set as outside the circle
+                }
+            }
+          
+            isInsideCircle(point) {
+                let distanceToCenter = dist(point.x, point.y, width / 2, height / 2);
+                return distanceToCenter < circleRadius;
+            }
+
+            display() {
+                noFill();
+                stroke(this.color);
+                strokeWeight(width / 400); // Adjust the divisor to control the proportion);
+                beginShape();
+                for (let pt of this.points) {
+                    vertex(pt.x, pt.y);
+                }
+                endShape();
+            }
+        }
+    </script>
+</body>
+</html>
